@@ -1,9 +1,19 @@
 require_relative '00_tree_node'
+require_relative 'chess_board'
+require_relative 'tile'
 require 'byebug'
 
 class KnightPathFinder
   attr_reader :visited_positions
 
+  WHITE_KNIGHT = "♘"
+  BLACK_KNIGHT = "♞"
+  EMPTY_SPACE = "-"
+  COLORS = {
+            :start => :red,
+            :previous => :yellow,
+            :final => :green
+                                  }
   DELTAS = [
             [1, 2],
             [1, -2],
@@ -16,6 +26,7 @@ class KnightPathFinder
                     ]
 
   def initialize(pos)
+    raise "error position #{pos} out of bounds" if pos.any? { |el| el < 0 || el > 7}
     @pos = pos
     @visited_positions = [@pos]
     @move_tree = build_move_tree
@@ -70,12 +81,41 @@ class KnightPathFinder
     path.reverse
   end
 
+  def clear_screen
+    #system('clear')
+    puts "\e[H\e[2J"    # Clears the screen
+  end
+
+  def render_path(path)
+    @chess_board = ChessBoard.new(8, 8, EMPTY_SPACE)
+    @past_positions = []
+
+    path.each_with_index do |pos, idx|
+      clear_screen
+      current_tile = @chess_board[pos]
+      current_tile.set_value(WHITE_KNIGHT)
+      current_tile.set_color(COLORS[:final])
+      current_tile.set_color(COLORS[:start]) if idx == 0
+      recolor_past_tiles
+      @past_positions << pos unless idx == 0  # don't recolor the start tile
+      @chess_board.render
+      sleep(1)
+    end
+
+  end
+
+  def recolor_past_tiles
+    @past_positions.each { |pos| @chess_board[pos].set_color(COLORS[:previous]) }
+  end
+
 end
 
 if __FILE__ == $PROGRAM_NAME
-  kpf = KnightPathFinder.new([0,0])
-  p kpf.find_path([7, 6]) # => [[0, 0], [1, 2], [2, 4], [3, 6], [5, 5], [7, 6]]
-  p kpf.find_path([6, 2]) # => [[0, 0], [1, 2], [2, 0], [4, 1], [6, 2]]
-  p kpf.find_path([0, 0]) # => [[0, 0]
-  p kpf.find_path([0, 1]) # => [[0, 0], [1, 2], [2, 0], [0, 1]]
+  kpf = KnightPathFinder.new([0, 6])
+  path = kpf.find_path([1, 7])
+  kpf.render_path(path)
+  # p kpf.find_path([7, 6]) # => [[0, 0], [1, 2], [2, 4], [3, 6], [5, 5], [7, 6]]
+  # p kpf.find_path([6, 2]) # => [[0, 0], [1, 2], [2, 0], [4, 1], [6, 2]]
+  # p kpf.find_path([0, 0]) # => [[0, 0]
+  # p kpf.find_path([0, 1]) # => [[0, 0], [1, 2], [2, 0], [0, 1]]
 end
