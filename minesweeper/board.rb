@@ -11,8 +11,8 @@ class Board
     @board = board
     @mine_positions = mine_tiles
     @flagged_positions = Set.new
-    @unclicked_positions = Set.new
     @letters = ("A".."Z").to_a.take(LENGTH)
+    @unclicked_positions = 
   end
 
   def self.new_board
@@ -92,7 +92,7 @@ class Board
     puts "Move: #{move}"
     pos, choice = move
     pos[0] = @letters.find_index(pos[0])
-    tile = self[pos]
+    tile = self[pos.reverse]
     if @unclicked_positions.include?(pos)
       return true
     else

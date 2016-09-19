@@ -3,8 +3,10 @@ require 'colorize'
 $BACKGROUND = :blue
 
 class Tile
-  FLAG = '⚑'
-  BOMB = '💣'
+  #FLAG = '⚑'
+  #BOMB = '💣'
+  FLAG = 'F'
+  BOMB = 'B'
   EMPTY = ' '
   UNCLICKED = '-'
 
