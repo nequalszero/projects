@@ -13,7 +13,8 @@ class MineSweeper
     while status.nil?
       move = prompt_move
       puts "Successful move given! #{move}"
-      status = won?
+      @board.make_move(move[0], move[1])
+      status = won_or_lost?
     end
   end
 

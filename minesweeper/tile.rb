@@ -3,10 +3,10 @@ require 'colorize'
 $BACKGROUND = :blue
 
 class Tile
-  #FLAG = '⚑'
-  #BOMB = '💣'
-  FLAG = 'F'
-  BOMB = 'B'
+  FLAG = '⚑'
+  BOMB = '💣'
+  #FLAG = 'F'
+  #BOMB = 'B'
   EMPTY = ' '
   UNCLICKED = '-'
 
@@ -43,6 +43,16 @@ class Tile
     @flagged
   end
 
+  def set_flagged
+    @flagged = true
+    @display_value = FLAG
+  end
+
+  def unflag
+    @flagged = false
+    @display_value = UNCLICKED
+  end
+
   def display
     @display_value
   end
@@ -65,7 +75,6 @@ class Tile
 
   def set_mine
     @mine = true
-    set_display_value
   end
 
   def displaying_bomb?
@@ -74,7 +83,6 @@ class Tile
 
   def increment_mines
     @mines_touching += 1
-    set_display_value
   end
 
 end

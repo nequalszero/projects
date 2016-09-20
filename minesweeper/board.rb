@@ -1,18 +1,31 @@
 require 'set'
 require_relative 'tile'
 
+class Set
+  def any?(&prc)
+    self.each { |el| return true if prc.call(el) }
+    false
+  end
+end
+
 class Board
 
   HEIGHT = 10
-  LENGTH = 16       # May not be longer than 26 columns
-  NUM_MINES = 50
+  LENGTH = 10      # May not be longer than 26 columns
+  NUM_MINES = 10
 
   def initialize(board, mine_tiles)
     @board = board
     @mine_positions = mine_tiles
     @flagged_positions = Set.new
     @letters = ("A".."Z").to_a.take(LENGTH)
-    @unclicked_positions = 
+    @unclicked_positions = get_all_positions.flatten
+    puts "Mine positions:"
+    p @mine_positions
+  end
+
+  def get_all_positions
+    (0..HEIGHT-1).to_a.map { |num| @letters.map { |letter| [letter, num].join("") } }
   end
 
   def self.new_board
@@ -91,20 +104,81 @@ class Board
   def valid_move?(move)
     puts "Move: #{move}"
     pos, choice = move
+    move_str = pos.join("")
     pos[0] = @letters.find_index(pos[0])
     tile = self[pos.reverse]
-    if @unclicked_positions.include?(pos)
+    if @unclicked_positions.include?(move_str)
       return true
     else
       return true if @flagged_positions.include?(pos) && choice == 'U'
-      puts "Position #{pos} has already been clicked. "
+      puts "Position #{move_str} has already been clicked. "
       false
+    end
+  end
+
+  # pos is received as [col, row], action is F, C, or U (flag/click/unflag)
+  def make_move(pos, action)
+    puts "Received #{pos}, #{action} to board#make_move method"
+    pos_str = [ @letters[pos[0]], pos[1] ].join("")
+    pos = pos.reverse
+    tile = self[pos]
+    case action
+      when 'U'
+        unflagging_action(pos_str, tile)
+      when 'F'
+        flagging_action(pos_str, tile)
+      when 'C'
+        clicking_action(pos_str, tile, pos)
+      else
+        puts "Invalid action #{action}"
+    end
+  end
+
+  def clicking_action(pos_str, tile, pos)
+    if tile.flagged?
+      puts "Cannot click #{pos_str} because the position is flagged, unflag it first"
+      return
+    elsif tile.revealed?
+      puts "Position #{pos_str} has already been revealed"
+      return
+    else
+      @unclicked_positions.delete(pos_str)
+      tile.reveal
+      if tile.is_mine?
+        return
+      else
+        reveal_neighboring_tiles(pos)
+      end
+    end
+  end
+
+  def reveal_neighboring_tiles(pos)
+
+  end
+
+  def unflagging_action(pos_str, tile)
+    if tile.flagged?
+      tile.unflag
+      @unclicked_positions << pos_str
+    else
+      puts "Position {pos_str} cannot be unflagged"
+      return
+    end
+  end
+
+  def flagging_action(pos_str, tile)
+    if tile.flagged?
+      puts "Position #{pos_str} is already flagged"
+      return
+    else
+      tile.set_flagged
+      @flagged_positions << pos_str
     end
   end
 
   def won?
     # Player loses if any positions are displaying mine symbols
-    return false if @mine_positions.any? { |pos| self[pos].displaying_bomb }
+    return false if @mine_positions.any? { |pos| self[pos].displaying_bomb? }
 
     # Player wins if all mine positions are flagged with no extra flags out
     return true if @mine_positions.length == @flagged_positions &&
@@ -119,6 +193,8 @@ class Board
     return true if @mine_positions.length == @unclicked_positions.length +
       @flagged_positions.length
 
+    puts "game still in progress"
+    puts "mine positions: #{@mine_positions}"
   end
 
   def render
