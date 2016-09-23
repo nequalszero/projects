@@ -3,6 +3,8 @@ require 'colorize'
 $BACKGROUND = :blue
 
 class Tile
+  attr_reader :mines_touching
+
   FLAG = '⚑'
   BOMB = '💣'
   #FLAG = 'F'
@@ -33,6 +35,11 @@ class Tile
   def reveal
     @clicked = true
     @display_value = set_display_value
+  end
+
+  def hide
+    @clicked = false
+    @display_value = UNCLICKED
   end
 
   def revealed?

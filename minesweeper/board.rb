@@ -1,18 +1,19 @@
 require 'set'
 require_relative 'tile'
 
-class Set
-  def any?(&prc)
-    self.each { |el| return true if prc.call(el) }
-    false
-  end
-end
-
 class Board
 
   HEIGHT = 10
   LENGTH = 10      # May not be longer than 26 columns
   NUM_MINES = 10
+
+  def self.make_deltas
+    deltas = (-1..1).map { |x| (-1..1).map { |y| [x,y] }}.flatten(1)
+    deltas.delete([0,0])
+    deltas
+  end
+
+  DELTAS = Board.make_deltas
 
   def initialize(board, mine_tiles)
     @board = board
@@ -144,24 +145,51 @@ class Board
     else
       @unclicked_positions.delete(pos_str)
       tile.reveal
-      if tile.is_mine?
-        return
-      else
+      unless tile.is_mine?
         reveal_neighboring_tiles(pos)
       end
     end
   end
 
   def reveal_neighboring_tiles(pos)
+    return if self[pos].mines_touching > 0
 
+    if self[pos].display == Tile::EMPTY
+      neighboring_tiles = get_neighbors(pos)
+      return if neighboring_tiles.empty?
+      neighboring_tiles.each do |pos|
+        puts "calling recursive_reveal on #{pos}"
+        recursive_reveal(pos)
+      end
+    end
+  end
+
+  def recursive_reveal(pos)
+    tile = self[pos]
+    return if tile.revealed? || tile.flagged? || tile.is_mine?
+    if tile.num_mines > 0
+      tile.reveal
+      @unclicked_positions.delete(pos)
+    elsif tile.mines_touching == 0
+      neighbors = get_neighbors(pos)
+      neighbors.each { |neighbor_pos| recursive_reveal(neighbor_pos) }
+    end
+  end
+
+  def get_neighbors(pos)
+    neighbors = DELTAS.map.with_index do |delta|
+      delta.map.with_index { |el, idx| el + pos[idx] }
+    end
+    neighbors.select { |neighbor| in_bounds?(neighbor) }
   end
 
   def unflagging_action(pos_str, tile)
     if tile.flagged?
       tile.unflag
+      @flagged_positions.delete(pos_str)
       @unclicked_positions << pos_str
     else
-      puts "Position {pos_str} cannot be unflagged"
+      puts "Position #{pos_str} cannot be unflagged"
       return
     end
   end
@@ -176,9 +204,16 @@ class Board
     end
   end
 
+  def any_bombs_displaying?
+    @mine_positions.each { |pos| return true if self[pos].displaying_bomb? }
+  end
+
   def won?
     # Player loses if any positions are displaying mine symbols
-    return false if @mine_positions.any? { |pos| self[pos].displaying_bomb? }
+    if any_bombs_displaying?
+      puts "You lose!"
+      return false
+    end
 
     # Player wins if all mine positions are flagged with no extra flags out
     return true if @mine_positions.length == @flagged_positions &&
@@ -194,7 +229,7 @@ class Board
       @flagged_positions.length
 
     puts "game still in progress"
-    puts "mine positions: #{@mine_positions}"
+    puts "mine positions: #{@mine_positions.to_a.sort}"
   end
 
   def render
@@ -228,6 +263,10 @@ class Board
   def [](pos)
     row, col = pos
     @board[row][col]
+  end
+
+  def in_bounds?(pos)
+    row_in_bounds(pos[0]) && pos[1] >= 0 && pos[1] < @letters.length
   end
 
   def column_in_bounds?(col)
